@@ -8,6 +8,8 @@ The protocol was created to address the lack of a notification mechanism in web3
 
 ### Application Workflow
 
+![](./images/epns.png)
+
 - **Integration:** To integrate EPNS into your application, you need to utilize the Push SDK. This SDK offers an abstraction layer for incorporating Push protocol features into both your frontend and backend systems
 
 - **Subscription:** Users can subscribe to EPNS channels from a frontend application. This allows them to receive notifications from the channels they choose
@@ -40,7 +42,7 @@ Here is the workflow for how these contracts work together:
 
 This contract imports several interfaces to interact with AAVE Protocol and Uniswap and it also imports some of OpenZeppelin’s reusable libraries and contracts to build a secure smart contract.
 
-##### A. IMPORTS
+#### A. IMPORTS
 
 ```
 import "./interfaces/IPUSH.sol";
@@ -82,7 +84,7 @@ The Openzeppelin imports are:
 
 - **SafeERC20.sol:** This library provides a number of wrapper functions for interacting with ERC20 tokens that check for success and revert on error. This can help to prevent unexpected behavior and security vulnerabilities in your Solidity contracts.
 
-##### B. ENUMS
+#### B. ENUMS
 
 ```
 // For Message Type
@@ -103,7 +105,7 @@ enum ChannelAction {
 
 **ChannelAction:** enum is used in the epnscorev1 contract to represent the different actions that can be performed on a channel. These actions are: ChannelRemoved, ChannelAdded, ChannelUpdated
 
-##### C. STRUCTS
+#### C. STRUCTS
 
 ```
 struct Channel {
@@ -148,7 +150,7 @@ channelFairShareCount: The number of fair shares that the channel has earned. Th
 
 **channelWeight:** The channel's weight. This is a measure of the channel's importance and influence.
 
-##### D. MAPPING
+#### D. MAPPING
 
 ```
 mapping(address => Channel) public channels;
@@ -243,7 +245,7 @@ uint256 public ADD_CHANNEL_MIN_POOL_CONTRIBUTION;
 
 **ADD_CHANNEL_MIN_POOL_CONTRIBUTION:** The minimum amount of PUSH tokens that must be contributed to the EPNS pool to add a new channel.
 
-##### E. EVENTS
+#### E. EVENTS
 
 ```
 event UpdateChannel(address indexed channel, bytes identity);
@@ -292,7 +294,7 @@ event ChannelNotifcationSettingsAdded(
 
 These events can be used by users to track changes to channels and their settings. For example, a user can subscribe to the ChannelVerified event to be notified when a channel is verified. Or, a user can subscribe to the ChannelBlocked event to be notified when a channel is blocked.
 
-##### F. MODIFIER
+#### F. MODIFIER
 
 ```
 modifier onlyPushChannelAdmin() {
@@ -377,7 +379,20 @@ modifier onlyUserAllowedChannelType(ChannelType _channelType) {
 
 These modifier functions are important for protecting the EPNS protocol and ensuring that only authorized users can perform certain actions.
 
-##### G. FUNCTIONS
+#### G. FUNCTIONS
+
+```
+function initialize(
+        address _pushChannelAdmin,
+        address _pushTokenAddress,
+        address _wethAddress,
+        address _uniswapRouterAddress,
+        address _lendingPoolProviderAddress,
+        address _daiAddress,
+        address _aDaiAddress,
+        uint256 _referralCode
+    ) public initializer returns (bool success) {}
+```
 
 **Function `initialize()`**
 
@@ -428,6 +443,25 @@ The initialize() function is a very important function in the EPNS CORE V1 contr
 
 ##### SETTER FUNCTONS
 
+```
+function updateWETHAddress(address _newAddress) external onlyPushChannelAdmin() {}
+
+function updateUniswapRouterAddress(address _newAddress) external onlyPushChannelAdmin() {}
+
+function setEpnsCommunicatorAddress(address _commAddress) external onlyPushChannelAdmin() {}
+
+function setGovernanceAddress(address _governanceAddress) external onlyPushChannelAdmin() {}
+
+function setMigrationComplete() external onlyPushChannelAdmin() {}
+
+function setChannelDeactivationFees(uint256 _newFees) external onlyGovernance() {}
+
+function setMinChannelCreationFees(uint256 _newFees) external onlyGovernance() {}
+
+
+function transferPushChannelAdminControl(address _newAdmin) public onlyPushChannelAdmin() {}
+```
+
 **updateWETHAddress():** This function allows the Push Channel Admin to update the address of the Wrapped Ether (WETH) contract. The WETH contract is used to wrap Ether so that it can be used in decentralized finance (DeFi) protocols.
 
 **updateUniswapRouterAddress():** This function allows the Push Channel Admin to update the address of the Uniswap V2 router contract. The Uniswap V2 router contract is used to swap tokens on the Uniswap decentralized exchange.
@@ -443,3 +477,282 @@ The initialize() function is a very important function in the EPNS CORE V1 contr
 **setMinChannelCreationFees():** This function allows the Governance contract to set the minimum fees that must be paid when creating a new channel. These fees are used to fund the development and maintenance of the EPNS protocol.
 
 **transferPushChannelAdminControl():** This function allows the Push Channel Admin to transfer control of the Push Channel Admin role to a new address. This role is responsible for managing the global channel on the EPNS protocol.
+
+##### CHANNEL RELATED FUNCTIONALITIES
+
+```
+function getChannelState(address _channel) external view returns(uint256 state) {}
+
+function updateChannelMeta(address _channel, bytes calldata _newIdentity) external onlyChannelOwner(_channel) {}
+
+function _updateChannelMeta(address _channel) internal {}
+
+function createChannelForPushChannelAdmin() external onlyPushChannelAdmin() {}
+
+function createChannelWithFees(
+        ChannelType _channelType,
+        bytes calldata _identity,
+        uint256 _amount
+    ) {}
+
+function _createChannelWithFees(
+        address _channel,
+        ChannelType _channelType,
+        uint256 _amount
+    ) private {}
+
+function migrateChannelData(
+        uint256 _startIndex,
+        uint256 _endIndex,
+        address[] calldata _channelAddresses,
+        ChannelType[] calldata _channelTypeList,
+        bytes[] calldata _identityList,
+        uint256[] calldata _amountList
+    ) external onlyPushChannelAdmin returns (bool) {}
+
+function _createChannel(
+        address _channel,
+        ChannelType _channelType,
+        uint256 _amountDeposited
+    ) private {}
+
+function createChannelSettings(
+        uint256 _notifOptions,
+        string calldata _notifSettings,
+        string calldata _notifDescription
+    ) external onlyActivatedChannels(msg.sender) {}
+
+function deactivateChannel(uint256 _amountsOutValue) external onlyActivatedChannels(msg.sender) {}
+
+function reactivateChannel(uint256 _amount) external onlyDeactivatedChannels(msg.sender) {}
+
+function blockChannel(address _channelAddress)
+     external
+     onlyPushChannelAdmin()
+     onlyUnblockedChannels(_channelAddress) {}
+
+```
+
+**getChannelState() function:** This function allows anyone to get the state of a channel. The state of a channel can be either Inactive, Activated, Deactivated, or Blocked.
+
+**updateChannelMeta() function:** This function allows the owner of a channel to update the channel's metadata. The metadata of a channel includes the channel's identity, which is a string that is used to identify the channel.
+
+**\_updateChannelMeta() function:** This internal function is used to update the channel's channelUpdateBlock property. The channelUpdateBlock property is a block number that indicates the last time the channel's metadata was updated.
+
+**createChannelForPushChannelAdmin() function:** This function allows the Push Channel Admin to create a channel for themselves. This channel is used to send notifications to all users on the EPNS protocol.
+
+The createChannelForPushChannelAdmin() function creates two channels:
+
+- A channel for all users on the EPNS protocol. This channel has the type ChannelType.ProtocolNonInterest and an identity of 1+QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74.
+- A channel for the Push Channel Admin to send notifications to all channel alerters. This channel also has the type ChannelType.ProtocolNonInterest and an identity of 1+QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s.
+
+The createChannelForPushChannelAdmin() function only emits two AddChannel() events, even though it creates two channels. This is done to reduce gas costs.
+
+**createChannelWithFees() function:** This function allows any user to create a new channel. The user must pay a fee in DAI to create a channel. The fee is used to fund the development and maintenance of the EPNS protocol.
+
+The createChannelWithFees() function takes the following arguments:
+
+- \_channelType: The type of channel to create. The possible channel types are ChannelType.InterestBearingOpen, ChannelType.InterestBearingMutual, and ChannelType.ProtocolNonInterest.
+- \_identity: The identity of the channel. The identity of a channel is a string that is used to identify the channel.
+- \_amount: The amount of DAI to pay to create the channel.
+
+The createChannelWithFees() function first emits an AddChannel() event. This event is used to notify users that a new channel has been created. Next, the createChannelWithFees() function calls the \_createChannelWithFees() internal function to create the channel.
+
+**\_createChannelWithFees() function:** This internal function is used to create a new channel. The function takes the following arguments:
+
+- \_channel: The address of the channel to create.
+- \_channelType: The type of channel to create. The possible channel types are ChannelType.InterestBearingOpen, ChannelType.InterestBearingMutual, and ChannelType.ProtocolNonInterest.
+- \_amount: The amount of DAI to pay to create the channel.
+
+The \_createChannelWithFees() function first checks if the amount of DAI paid to create the channel is greater than or equal to the minimum channel creation fee. If it is not, the function reverts. Next, the \_createChannelWithFees() function transfers the DAI used to create the channel from the user's wallet to the EPNS protocol's wallet. Then, the \_createChannelWithFees() function deposits the DAI used to create the channel into the EPNS protocol's pool. Finally, the \_createChannelWithFees() function calls the \_createChannel() internal function to create the channel.
+
+**migrateChannelData() function:** This function allows the Push Channel Admin to migrate channel data from the old EPNS protocol contract to the new EPNS protocol contract. The function takes the following arguments:
+
+- \_startIndex: The start index of the channels to migrate.
+- \_endIndex: The end index of the channels to migrate.
+- \_channelAddresses: An array of the addresses of the channels to migrate.
+- \_channelTypeList: An array of the types of the channels to migrate.
+- \_identityList: An array of the identities of the channels to migrate.
+- \_amountList: An array of the amounts of DAI deposited into the channels to migrate.
+
+The migrateChannelData() function first checks if the migration is already complete. If it is, the function reverts. Next, the migrateChannelData() function checks if the lengths of the \_channelAddresses, \_channelTypeList, \_identityList, and \_amountList arrays are all equal. If they are not, the function reverts. Then, the migrateChannelData() function iterates over the arrays and creates a new channel for each channel in the arrays. If the channel to be migrated is already active, the migrateChannelData() function skips it. Otherwise, the migrateChannelData() function transfers the DAI deposited into the channel to be migrated from the user's wallet to the EPNS protocol's wallet. Next, the migrateChannelData() function deposits the DAI transferred from the user's wallet into the EPNS protocol's pool. Finally, the migrateChannelData() function calls the \_createChannel() internal function to create the new channel.
+
+**\_createChannel() function:** This internal function is used to create a new channel. The function takes the following arguments:
+
+- \_channel: The address of the channel to create.
+- \_channelType: The type of channel to create. The possible channel types are ChannelType.InterestBearingOpen, ChannelType.InterestBearingMutual, and ChannelType.ProtocolNonInterest.
+- \_amountDeposited: The amount of DAI deposited into the channel.
+
+The \_createChannel() function first calculates the channel weight. The channel weight is a measure of the importance of the channel. It is calculated by dividing the amount of DAI deposited into the channel by the minimum channel creation fee. Next, the \_createChannel() function sets the channel state to 1, which indicates that the channel is active. Then, the \_createChannel() function sets the channel's pool contribution, channel type, channel start block, channel update block, and channel weight. Finally, the \_createChannel() function adds the channel to the channelById map and increments the channelsCount variable. If the channel type is ChannelType.InterestBearingOpen, ChannelType.InterestBearingMutual, or ChannelType.ProtocolPromotion, the \_createChannel() function also calls the \_readjustFairShareOfChannels() internal function to readjust the fair share of channels. The \_createChannel() function also subscribes the channel to its own channel and to the EPNS Alerter channel, unless the channel is the EPNS Alerter channel itself.
+
+**createChannelSettings() function:** This function allows users to create channel settings. Channel settings allow users to customize the notifications they receive from their channels.
+
+The createChannelSettings() function takes the following arguments:
+
+- \_notifOptions: A bitmask that represents the notification options that the user wants to enable.
+- \_notifSettings: A string that represents the notification settings for the channel.
+- \_notifDescription: A string that represents the description of the notification settings for the channel.
+
+The createChannelSettings() function first encodes the \_notifOptions bitmask and the \_notifSettings string into a single string. Then, the createChannelSettings() function sets the channel notification settings for the user's channel to the encoded string. Finally, the createChannelSettings() function emits a ChannelNotifcationSettingsAdded event to notify users that the channel notification settings have been updated.
+
+**deactivateChannel() function:** This function allows users to deactivate their channels. When a channel is deactivated, the user receives a refund of the amount they deposited into the channel minus the channel deactivation fee. The channel deactivation fee is used to fund the development and maintenance of the EPNS protocol.
+
+The deactivateChannel() function takes the following argument:
+
+- \_amountsOutValue: The amount of PUSH tokens that the user wants to receive in return for deactivating their channel.
+
+The deactivateChannel() function first gets the channel data for the user's channel. Next, the deactivateChannel() function calculates the total amount that the user will receive as a refund. The refund amount is calculated by subtracting the channel deactivation fee from the total amount deposited into the channel. Then, the deactivateChannel() function calls the \_readjustFairShareOfChannels() internal function to readjust the fair share of channels. Finally, the deactivateChannel() function updates the channel state to 2, which indicates that the channel is deactivated. The function also updates the user's pool contribution and channel weight. The deactivateChannel() function then swaps the DAI deposited into the channel for PUSH tokens at the current market rate and transfers the PUSH tokens to the user.
+
+![](./images/activation.png)
+
+**reactivateChannel() function:** This function allows users to reactivate their deactivated channels. To reactivate a channel, the user must pay a fee in DAI. The fee is used to fund the development and maintenance of the EPNS protocol.
+
+The reactivateChannel() function takes the following argument:
+
+- \_amount: The amount of DAI that the user wants to pay to reactivate their channel.
+
+The reactivateChannel() function first checks if the amount of DAI that the user is paying to reactivate their channel is greater than or equal to the minimum channel creation fee. If it is not, the function reverts. Next, the reactivateChannel() function transfers the DAI from the user's wallet to the EPNS protocol's wallet. Then, the reactivateChannel() function calls the \_depositFundsToPool() internal function to deposit the DAI into the EPNS protocol's pool. Next, the reactivateChannel() function calls the \_readjustFairShareOfChannels() internal function to readjust the fair share of channels. Finally, the reactivateChannel() function updates the channel state to 1, which indicates that the channel is active. The function also updates the user's pool contribution and channel weight.
+
+**blockChannel():** The blockChannel() function in the EPNS CORE V1 contract allows the Push Channel Admin to block a channel. When a channel is blocked, the channel is removed from the protocol and the user is refunded the amount they deposited into the channel minus the channel deactivation fee. The channel deactivation fee is used to fund the development and maintenance of the EPNS protocol.
+
+The blockChannel() function takes the following argument:
+
+- \_channelAddress: The address of the channel to block.
+
+The blockChannel() function first checks if the channel is unblocked. If it is not, the function reverts. Next, the blockChannel() function gets the channel data for the channel to be blocked. Then, the blockChannel() function calculates the total amount that the user will receive as a refund. The refund amount is calculated by subtracting the channel deactivation fee from the total amount deposited into the channel. Next, the blockChannel() function calls the \_readjustFairShareOfChannels() internal function to readjust the fair share of channels. Finally, the blockChannel() function updates the channel state to 3, which indicates that the channel is blocked. The function also updates the user's pool contribution and channel weight. The blockChannel() function then updates the PROTOCOL_POOL_FEES variable to reflect the additional revenue from the channel deactivation fee. The blockChannel() function then emits a ChannelBlocked() event to notify users that the channel has been blocked.
+
+##### CHANNEL VERIFICATION FUNCTIONALITIES
+
+![](./images/unverify.png)
+
+```
+function getChannelVerfication(address _channel) public view returns (uint8 verificationStatus) {}
+
+function batchVerification(uint256 _startIndex, uint256 _endIndex, address[] calldata _channelList)
+    external
+    onlyPushChannelAdmin
+    returns(bool) {}
+
+function batchRevokeVerification(uint256 _startIndex, uint256 _endIndex, address[] calldata _channelList) external              onlyPushChannelAdmin returns(bool){}
+
+function verifyChannel(address _channel) public onlyActivatedChannels(_channel) {}
+
+function unverifyChannel(address _channel) public {}
+```
+
+**getChannelVerfication() function:** This function returns the verification status of a channel. The verification status can be one of the following:
+
+- 0: Not verified
+- 1: Primary verified
+- 2: Secondary verified
+
+The getChannelVerfication() function first checks if the channel is verified by the Push Channel Admin. If it is, the function returns 1. If the channel is not verified by the Push Channel Admin, the function checks if the channel is verified by another verified channel. If it is, the function returns 2. If the channel is not verified by either the Push Channel Admin or another verified channel, the function returns 0.
+
+**batchVerification() function:** This function allows the Push Channel Admin to verify multiple channels in a single batch. The function takes the following arguments:
+
+- \_startIndex: The start index of the channels to verify.
+- \_endIndex: The end index of the channels to verify.
+- \_channelList: An array of the addresses of the channels to verify.
+
+The batchVerification() function iterates over the array of channel addresses and verifies each channel using the verifyChannel() function.
+
+**batchRevokeVerification() function:** This function allows the Push Channel Admin to revoke the verification of multiple channels in a single batch. The function takes the following arguments:
+
+- \_startIndex: The start index of the channels to revoke the verification of.
+- \_endIndex: The end index of the channels to revoke the verification of.
+- \_channelList: An array of the addresses of the channels to revoke the verification of.
+
+The batchRevokeVerification() function iterates over the array of channel addresses and revokes the verification of each channel using the unverifyChannel() function.
+
+**verifyChannel() function:** This function allows verified channels to verify other channels. The function takes the following argument:
+
+- \_channel: The address of the channel to verify.
+
+The verifyChannel() function first checks if the caller is verified. If the caller is not verified, the function reverts. Next, the verifyChannel() function checks if the channel to be verified is already verified. If it is, the function reverts. Finally, the verifyChannel() function updates the verified by field of the channel to be verified to the address of the caller.
+
+**unverifyChannel() function:** This function allows verified channels to revoke the verification of other channels. The function takes the following argument:
+
+- \_channel: The address of the channel to revoke the verification of.
+
+The unverifyChannel() function first checks if the caller is authorized to revoke the verification of the channel. If the caller is not authorized, the function reverts. Next, the unverifyChannel() function updates the verified by field of the channel to be unverified to the zero address.
+
+##### DEPOSIT & WITHDRAWAL OF FUNDS FUNCTIONALITIES
+
+```
+function _depositFundsToPool(uint256 amount) private {}
+
+function swapAndTransferPUSH(address _user, uint256 _userAmount, uint256 _amountsOutValue)
+        internal
+        returns (bool) {}
+
+function swapADaiForDai(uint256 _amount) private {}
+```
+
+**\_depositFundsToPool() function:** This function is used to deposit DAI into the EPNS lending pool. The function takes the following argument:
+
+- amount: The amount of DAI to deposit.
+
+The \_depositFundsToPool() function first updates the POOL_FUNDS state variable to reflect the new deposit. Next, the \_depositFundsToPool() function calls the deposit() function on the Aave lending pool contract to deposit the DAI.
+
+**swapAndTransferPUSH() function:** This function is used to swap aDai for PUSH tokens and transfer them to a user's address. The function takes the following arguments:
+
+- \_user: The address of the user to receive the PUSH tokens.
+- \_userAmount: The amount of aDai to swap and transfer.
+- \_amountsOutValue: The minimum amount of PUSH tokens that the user must receive in the swap.
+
+The swapAndTransferPUSH() function first calls the swapADaiForDai() function to swap the aDai for DAI. Next, the swapAndTransferPUSH() function approves the Uniswap router to spend the DAI. Then, the swapAndTransferPUSH() function calls the swapExactTokensForTokens() function on the Uniswap router to swap the DAI for PUSH tokens. Finally, the swapAndTransferPUSH() function transfers the PUSH tokens to the user's address.
+
+swapADaiForDai() function: This function is used to swap aDai for DAI. The function takes the following argument:
+
+- \_amount: The amount of aDai to swap.
+
+The swapADaiForDai() function calls the redeem() function on the Aave aDai contract to redeem the aDai for DAI.
+
+##### FAIR SHARE RATIO CALCULATIONS
+
+```
+function _readjustFairShareOfChannels(
+        ChannelAction _action,
+        uint256 _channelWeight,
+        uint256 _oldChannelWeight,
+        uint256 _groupFairShareCount,
+        uint256 _groupNormalizedWeight,
+        uint256 _groupHistoricalZ,
+        uint256 _groupLastUpdate
+    )
+        private
+        view
+        returns (
+            uint256 groupNewCount,
+            uint256 groupNewNormalizedWeight,
+            uint256 groupNewHistoricalZ,
+            uint256 groupNewLastUpdate
+        )
+    {}
+
+    function getChainId() internal pure returns (uint256) {}
+```
+
+**\_readjustFairShareOfChannels():** The \_readjustFairShareOfChannels() function in the EPNS CORE V1 contract is used to readjust the fair share of channels. The function takes the following arguments:
+
+- \_action: The type of channel action that occurred (added, removed, or updated).
+- \_channelWeight: The weight of the channel whose fair share is being adjusted.
+- \_oldChannelWeight: The old weight of the channel whose fair share is being adjusted (only applies to updated channels).
+- \_groupFairShareCount: The current number of channels in the group.
+- \_groupNormalizedWeight: The current normalized weight of the group.
+- \_groupHistoricalZ: The current historical constant of the group.
+- \_groupLastUpdate: The last block number that the group's fair share was adjusted.
+
+The \_readjustFairShareOfChannels() function first calculates the new group count, normalized weight, historical constant, and last update block. The new group count is calculated by adding or subtracting 1 from the current group count, depending on whether the channel is being added or removed. The new group normalized weight is calculated by dividing the total weight of the group by the new group count. The new group historical constant is calculated by adding the product of the new group count, the change in blocks, and the normalized weight to the current group historical constant. The new group last update block is set to the current block number. Once the new group count, normalized weight, historical constant, and last update block have been calculated, the function returns them.
+
+**getChainId():** The getChainId() function is a simple function that returns the chain ID of the current network.
+
+### OBSERVATIONS AND RECOMMENDATIONS
+
+Many of the essential features of the Ethereum Push Notification Service (EPNS) are handled by the intriguing and intricate EPNSCoreV1 smart contract. The contract employs safemath to detect and avoid integer overflow/underflow, has adequate function visibilities, and appears to be well optimized for gas usage. It is also well protected against reentrancy threats. The contract could still have some upgrades, though, as smart contract technologies have advanced since the contract's creation.
+
+Most of the dependent interfaces of the EPNSCoreV1 use the declaration "pragma solidity >=0.6.0 0.7.0;". The listed compiler version is outdated and almost certainly less secure than the most recent updates. By updating to version 0.8.0 or higher, you can prevent the use of safeMath and other imports that might use more gas during computations by ensuring that the compiler reports things like arithmetic overflow or underflow. Locking the compiler version also promotes greater security.
+
+It is unclear whether the contract is open source or proprietary because it does not declare its SPDX licensing, unlike other local file imports on which it depends.
+
+The contract strongly relies on the contracts and libraries of openzepellin, but the import routes indicated there are no longer valid because openzepellin altered the filing systems of some of their libraries after the contract was written. The contract imports and the proper import paths are shown in the screenshots below.
