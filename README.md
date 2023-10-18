@@ -755,4 +755,4 @@ Most of the dependent interfaces of the EPNSCoreV1 use the declaration "pragma s
 
 It is unclear whether the contract is open source or proprietary because it does not declare its SPDX licensing, unlike other local file imports on which it depends.
 
-The contract strongly relies on the contracts and libraries of openzepellin, but the import routes indicated there are no longer valid because openzepellin altered the filing systems of some of their libraries after the contract was written. The contract imports and the proper import paths are shown in the screenshots below.
+The contract strongly relies on the contracts and libraries of openzepellin, but the import routes indicated there are no longer valid because openzepellin altered the filing systems of some of their libraries after the contract was written.
